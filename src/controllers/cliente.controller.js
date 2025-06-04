@@ -57,3 +57,19 @@ exports.delete = (req, res) => {
     })
     .catch(err => res.status(500).send({ message: "Erro ao deletar Cliente " + id }));
 };
+
+exports.meuPerfil = async (req, res) => {
+  try {
+    const cliente = await Cliente.findByPk(req.idCliente, {
+      attributes: { exclude: ['senha'] }
+    });
+
+    if (!cliente) {
+      return res.status(404).json({ message: "Perfil do cliente não encontrado." });
+    }
+
+    res.status(200).json(cliente);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar o perfil do cliente.", error: error.message });
+  }
+};
