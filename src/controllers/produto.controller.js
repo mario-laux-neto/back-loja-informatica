@@ -1,6 +1,8 @@
 const db = require("../models");
 const Produto = db.Produto;
 const Op = db.Sequelize.Op;
+const fs = require('fs');
+const path = require('path');
 
 exports.create = (req, res) => {
   if (!req.body.nome || !req.body.preco_unitario) {
@@ -36,27 +38,47 @@ exports.findOne = (req, res) => {
     .catch(err => res.status(500).send({ message: "Erro ao buscar Produto " + id }));
 };
 
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
 
-  // Lógica para lidar com upload de múltiplas imagens
-  if (req.files && req.files.length > 0) {
-    // Substituindo as imagens existentes por novas
-    req.body.imagens = req.files.map(file => '/uploads/produtos/' + file.filename);
-  } else if (req.body.imagens === undefined) {
-    // Não modificar o campo 'imagens' se não houver novos uploads ou dados no body
-    delete req.body.imagens;
-  }
+  try {
+    if ((req.files && req.files.length > 0) || (Array.isArray(req.body.imagens) && req.body.imagens.length === 0)) {
+      const produtoExistente = await Produto.findByPk(id);
+      if (produtoExistente && produtoExistente.imagens && produtoExistente.imagens.length > 0) {
+        produtoExistente.imagens.forEach(imgPath => {
+          const caminhoRelativoPublic = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+          const fullPath = path.join('public', caminhoRelativoPublic);
 
-  Produto.update(req.body, { where: { id_produto: id } })
-    .then(num => {
-      if (num == 1) {
-        res.send({ message: "Produto atualizado." });
-      } else {
-        res.status(404).send({ message: `Produto com id=${id} não encontrado ou dados não alterados.` });
+          fs.unlink(fullPath, (err) => {
+            if (err) {
+              console.error(`Falha ao deletar imagem antiga ${fullPath}:`, err);
+            } else {
+              console.log(`Imagem antiga deletada: ${fullPath}`);
+            }
+          });
+        });
       }
-    })
-    .catch(err => res.status(500).send({ message: "Erro ao atualizar Produto " + id }));
+
+      if (req.files && req.files.length > 0) {
+        req.body.imagens = req.files.map(file => `/uploads/produtos/${file.filename}`);
+      } else if (Array.isArray(req.body.imagens) && req.body.imagens.length === 0) {
+        req.body.imagens = [];
+      } else {
+        delete req.body.imagens;
+      }
+    }
+
+    const [updated] = await Produto.update(req.body, { where: { id_produto: id } });
+
+    if (updated) {
+      const produtoAtualizado = await Produto.findByPk(id);
+      res.status(200).json(produtoAtualizado);
+    } else {
+      res.status(404).json({ message: "Produto não encontrado." });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao atualizar produto.", error: error.message });
+  }
 };
 
 exports.delete = (req, res) => {
