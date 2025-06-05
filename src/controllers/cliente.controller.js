@@ -73,3 +73,33 @@ exports.meuPerfil = async (req, res) => {
     res.status(500).json({ message: "Erro ao buscar o perfil do cliente.", error: error.message });
   }
 };
+
+exports.updateMeuPerfil = async (req, res) => {
+  try {
+    const { nome, telefone, cidade, estado } = req.body;
+
+    // Validar campos permitidos
+    if (!nome && !telefone && !cidade && !estado) {
+      return res.status(400).json({ message: "Nenhum campo válido para atualização foi fornecido." });
+    }
+
+    const camposAtualizaveis = {};
+    if (nome) camposAtualizaveis.nome = nome;
+    if (telefone) camposAtualizaveis.telefone = telefone;
+    if (cidade) camposAtualizaveis.cidade = cidade;
+    if (estado) camposAtualizaveis.estado = estado;
+
+    const [numAtualizados] = await Cliente.update(camposAtualizaveis, {
+      where: { id_cliente: req.idCliente },
+    });
+
+    if (numAtualizados === 0) {
+      return res.status(404).json({ message: "Perfil não encontrado ou dados não alterados." });
+    }
+
+    res.status(200).json({ message: "Perfil atualizado com sucesso." });
+  } catch (error) {
+    console.error("Erro ao atualizar perfil: ", error);
+    res.status(500).json({ message: "Erro ao atualizar o perfil.", error: error.message });
+  }
+};

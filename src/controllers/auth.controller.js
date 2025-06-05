@@ -1,5 +1,6 @@
+require("dotenv").config();
 const db = require("../models");
-const Cliente = db.cliente;
+const Cliente = db.Cliente;
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -29,6 +30,11 @@ exports.login = async (req, res) => {
   try {
     const { email, senha } = req.body;
 
+    // Validação básica de entrada
+    if (!email || !senha) {
+      return res.status(400).json({ message: "Email e senha são obrigatórios." });
+    }
+
     // Find the cliente by email
     const cliente = await Cliente.findOne({ where: { email } });
 
@@ -44,12 +50,18 @@ exports.login = async (req, res) => {
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ id: cliente.id_cliente }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id_cliente: cliente.id_cliente }, process.env.JWT_SECRET, {
       expiresIn: "24h"
     });
 
-    res.status(200).json({ message: "Login realizado com sucesso!", token });
+    res.status(200).json({
+      id_cliente: cliente.id_cliente,
+      nome: cliente.nome,
+      email: cliente.email,
+      accessToken: token
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Erro ao realizar login.", error: error.message });
   }
 };

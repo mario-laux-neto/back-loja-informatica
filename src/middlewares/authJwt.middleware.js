@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 
 const verifyToken = (req, res, next) => {
+  console.log("Middleware verifyToken executado");
+
   let token = req.headers["authorization"];
 
   if (token && token.startsWith('Bearer ')) {

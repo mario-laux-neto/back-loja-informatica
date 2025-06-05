@@ -7,7 +7,7 @@ const db = require("./models");
 const app = express();
 
 var corsOptions = {
-  origin: "http://localhost:8081" // Altere para a origem do seu frontend em produção
+  origin: "http://localhost:3000" // Altere para a origem do seu frontend em produção
 };
 app.use(cors(corsOptions));
 
@@ -21,6 +21,14 @@ db.sequelize.sync({ alter: true })
   })
   .catch((err) => {
     console.log("Falha ao sincronizar o banco de dados: " + err.message);
+  });
+
+db.sequelize.authenticate()
+  .then(() => {
+    console.log("Conexão com o banco de dados estabelecida com sucesso.");
+  })
+  .catch((err) => {
+    console.error("Erro ao conectar ao banco de dados:", err);
   });
 
 app.get("/api", (req, res) => {
@@ -50,5 +58,7 @@ app.use("/api/auth", authRoutes); // Montagem das rotas de autenticação
 app.use("/api/carrinho", carrinhoRoutes); // Montagem das rotas de carrinho
 
 app.use(express.static(path.join(__dirname, '../public')));
+
+console.log("Valor de JWT_SECRET:", process.env.JWT_SECRET);
 
 module.exports = app;
